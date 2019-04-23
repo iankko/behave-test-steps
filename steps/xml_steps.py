@@ -2,7 +2,9 @@ from behave import then, given
 from lxml import etree
 import time
 from steps import TIMEOUT
+import logging
 
+logger = logging.getLogger('cekit')
 
 @given('XML namespace {prefix}:{url}')
 def register_xml_namespace(context, prefix, url):
@@ -20,18 +22,24 @@ def register_xml_namespaces(context):
 
 @then('XML file {xml_file} should contain value {value} on XPath {xpath}')
 def check_xpath(context, xml_file, xpath, value):
+    logger.info ("xml_file = %s" % str(xml_file))
+    logger.info ("xpath = %s" % str(xpath))
+    logger.info ("value = %s" % str(value))
     start_time = time.time()
 
     container = context.containers[-1]
 
     while time.time() < start_time + TIMEOUT:
         content = container.execute(cmd="cat %s" % xml_file)
+        logger.info ("XML file content = %s" % str(content))
         document = etree.fromstring(content)
 
         if 'xml_namespaces' in context:
             result = document.xpath(xpath, namespaces=context.xml_namespaces)
         else:
             result = document.xpath(xpath)
+
+        logger.info ("Result = %s" % str(result))
 
         if isinstance(result, list):
             for option in result:
@@ -50,6 +58,7 @@ def check_xpath(context, xml_file, xpath, value):
 
         time.sleep(1)
 
+    logger.error ("Unable to retrieve result within timeout!")
     raise Exception('XPath expression "%s" did not match "%s"' % (xpath, value), content)
 
 
